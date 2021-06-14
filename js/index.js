@@ -129,15 +129,19 @@
                   <label for="tokenSymbol">Token Symbol</label>
                   <p>${symbol}</p>
                 </div>
-                <div class="form-group col-md-4">
+                <div class="form-group col-md-3">
                   <label>Presale Start Block</label>
-                  <p>${details.START_BLOCK}</p>
+                  <p id="startblock">${details.START_BLOCK}</p>
                 </div>
-                <div class="form-group col-md-4">
+				<div class="form-group col-md-3">
+                  <label>Remaining Blocks</label>
+                  <p id="remaining"></p>
+                </div>
+                <div class="form-group col-md-3">
                   <label for="max">Max Contribution</label>
                   <p>${max}</p>
                 </div>
-                <div class="form-group col-md-4">
+                <div class="form-group col-md-3">
                   <label for="cap">Goal/Cap</label>
                   <p>${softcap}/${hardcap}</p>
                 </div>
@@ -158,10 +162,14 @@
 
 	async function loadBlocks() {
 		if (canConnect) {
-			const web3 = new window.Web3(window.ethereum);
+			const web3 = new window.Web3(new Web3.providers.HttpProvider("https://bsc-dataseed.binance.org/"));
 			const block = await web3.eth.getBlockNumber();
 			$("#block").text(block).attr("href", `https://bscscan.com/block/${block}`);
-			setTimeout(loadBlocks, 1000);
+			if ($("#startblock").text()) {
+				const start = parseInt($("#startblock").text());
+				$("#remaining").text(start - block);
+			}
+			setTimeout(loadBlocks, 100);
 		}
 	}
 
