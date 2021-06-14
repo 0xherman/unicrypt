@@ -17,7 +17,6 @@
 		if (account && chainId !== null) {
 			$("#connectBtn").hide();
 			$("#address").text(account);
-			loadData()
 		} else {
 			$("#address").text("");
 		}
@@ -26,6 +25,8 @@
 			console.log("account changed");
 			disconnectAccount();
 		});
+
+		loadBlocks();
 	};
 	checkConnection();
 	$("#connectBtn").click(connectAccount);
@@ -107,8 +108,8 @@
 			const symbol = await contract.methods.symbol().call();
 			console.log(name, symbol);
 
-			const timestamp = (await web3.eth.getBlock(details.START_BLOCK)).timestamp;
-			console.log(timestamp);
+			// const timestamp = (await web3.eth.getBlock(details.START_BLOCK)).timestamp;
+			// console.log(timestamp);
 
 			$("#presale-data").html(`
 				<div class="form-row">
@@ -127,10 +128,6 @@
                 <div class="form-group col-md-6">
                   <label for="tokenSymbol">Token Symbol</label>
                   <p>${symbol}</p>
-                </div>
-                <div class="form-group col-md-4">
-                  <label for="startdate">Presale Start (estimate)</label>
-                  <p class="startdate">${new Date(timestamp * 1000).toLocaleString()}</p>
                 </div>
                 <div class="form-group col-md-4">
                   <label>Presale Start Block</label>
@@ -158,6 +155,15 @@
 		loadPresaleData(presaleAddress);
 	});
 
+
+	async function loadBlocks() {
+		if (canConnect) {
+			const web3 = new window.Web3(window.ethereum);
+			const block = await web3.eth.getBlockNumber();
+			$("#block").text(block).attr("href", `https://bscscan.com/block/${block}`);
+			setTimeout(loadBlocks, 1000);
+		}
+	}
 
 	async function purchase() {
 		try {
