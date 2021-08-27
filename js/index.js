@@ -1,4 +1,5 @@
 (function ($) {
+	const SUPPORTED_VERSION = 2;
 	let account = localStorage.getItem("account") || "";
 	let chainId = localStorage.getItem("chainId") || null;
 	const canConnect = typeof window.ethereum !== "undefined";
@@ -83,10 +84,16 @@
 	}
 
 	async function loadPresaleData(presaleAddress) {
+		$("#error, #presale-form").hide();
+		$(".spinner").show();
+		let contractVersion = -1;
+
 		try {
 			const web3 = new window.Web3(window.ethereum);
 			const presaleContract = new web3.eth.Contract(presaleABI, presaleAddress);
 
+			contractVersion = await presaleContract.methods.CONTRACT_VERSION().call();
+			console.log(await presaleContract.methods.PRESALE_SETTINGS().call());
 			const details = await presaleContract.methods.PRESALE_INFO().call();
 
 			const max = web3.utils.fromWei(details.MAX_SPEND_PER_BUYER);
@@ -121,14 +128,18 @@
                   <label for="tokenAddress">Presale Address</label>
                   <a target="_blank" href="https://bscscan.com/address/${presaleAddress}">${presaleAddress}</a>
                 </div>
-                <div class="form-group col-md-6">
+                <div class="form-group col-md-4">
                   <label for="tokenName">Token Name</label>
                   <p>${name}</p>
                 </div>
-                <div class="form-group col-md-6">
+                <div class="form-group col-md-4">
                   <label for="tokenSymbol">Token Symbol</label>
                   <p>${symbol}</p>
                 </div>
+				<div class="form-group col-md-4">
+				<label for="contractVersion">Unicrypt Version</label>
+					<p>${contractVersion}</p>
+				</div>
                 <div class="form-group col-md-3">
                   <label>Presale Start Block</label>
                   <p id="startblock">${details.START_BLOCK}</p>
@@ -150,8 +161,9 @@
 			$("#presale-form").show();
 		} catch (err) {
 			console.log(err);
-			$("#presale-data").html("<h4 class='text-danger'>Failed to load</h4>")
+			$("#error").html(`<h4 class='text-danger'>Failed to load.<br>Unicrypt Contract Version: ${contractVersion}<br>Supported Version: ${SUPPORTED_VERSION}</h4>`).show();
 		}
+		$(".spinner").hide();
 	}
 
 	$("#loadBtn").click(() => {
