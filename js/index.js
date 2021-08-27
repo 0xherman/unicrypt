@@ -1,5 +1,5 @@
 (function ($) {
-	const SUPPORTED_VERSION = 2;
+	const SUPPORTED_VERSIONS = [ 2, 3 ];
 	let account = localStorage.getItem("account") || "";
 	let chainId = localStorage.getItem("chainId") || null;
 	const canConnect = typeof window.ethereum !== "undefined";
@@ -90,9 +90,16 @@
 
 		try {
 			const web3 = new window.Web3(window.ethereum);
-			const presaleContract = new web3.eth.Contract(presaleABI, presaleAddress);
+			let presaleContract = new web3.eth.Contract(contractVersionABI, presaleAddress);
 
 			contractVersion = await presaleContract.methods.CONTRACT_VERSION().call();
+
+			if (SUPPORTED_VERSIONS.indexOf(+contractVersion) < 0) {
+				throw Error(`Unsupported Unicrypt Version ${contractVersion}`);
+			} else {
+				presaleContract = new web3.eth.Contract(presaleABIs[contractVersion], presaleAddress);
+			}
+
 			console.log(await presaleContract.methods.PRESALE_SETTINGS().call());
 			const details = await presaleContract.methods.PRESALE_INFO().call();
 
@@ -161,7 +168,7 @@
 			$("#presale-form").show();
 		} catch (err) {
 			console.log(err);
-			$("#error").html(`<h4 class='text-danger'>Failed to load.<br>Unicrypt Contract Version: ${contractVersion}<br>Supported Version: ${SUPPORTED_VERSION}</h4>`).show();
+			$("#error").html(`<h4 class='text-danger'>Failed to load.<br>${err}<br>Supported Unicrypt Versions: ${SUPPORTED_VERSIONS.join(", ")}</h4>`).show();
 		}
 		$(".spinner").hide();
 	}
