@@ -1,5 +1,7 @@
 (function ($) {
 	const SUPPORTED_VERSIONS = [ 2, 3 ];
+	let contractVersion = -1;
+
 	let account = localStorage.getItem("account") || "";
 	let chainId = localStorage.getItem("chainId") || null;
 	const canConnect = typeof window.ethereum !== "undefined";
@@ -86,21 +88,19 @@
 	async function loadPresaleData(presaleAddress) {
 		$("#error, #presale-form").hide();
 		$(".spinner").show();
-		let contractVersion = -1;
 
 		try {
 			const web3 = new window.Web3(window.ethereum);
 			let presaleContract = new web3.eth.Contract(contractVersionABI, presaleAddress);
 
-			contractVersion = await presaleContract.methods.CONTRACT_VERSION().call();
+			contractVersion = parseInt(await presaleContract.methods.CONTRACT_VERSION().call());
 
-			if (SUPPORTED_VERSIONS.indexOf(+contractVersion) < 0) {
+			if (SUPPORTED_VERSIONS.indexOf(contractVersion) < 0) {
 				throw Error(`Unsupported Unicrypt Version ${contractVersion}`);
 			} else {
 				presaleContract = new web3.eth.Contract(presaleABIs[contractVersion], presaleAddress);
 			}
 
-			console.log(await presaleContract.methods.PRESALE_SETTINGS().call());
 			const details = await presaleContract.methods.PRESALE_INFO().call();
 
 			const max = web3.utils.fromWei(details.MAX_SPEND_PER_BUYER);
@@ -121,9 +121,6 @@
 			const name = await contract.methods.name().call();
 			const symbol = await contract.methods.symbol().call();
 			console.log(name, symbol);
-
-			// const timestamp = (await web3.eth.getBlock(details.START_BLOCK)).timestamp;
-			// console.log(timestamp);
 
 			$("#presale-data").html(`
 				<div class="form-row">
@@ -193,25 +190,35 @@
 	}
 
 	async function purchase() {
+		$("#error").hide();
 		try {
 			const web3 = new window.Web3(window.ethereum);
-			const presaleContract = new web3.eth.Contract(presaleABI, presaleAddress);
+			const presaleContract = new web3.eth.Contract(presaleABIs[contractVersion], presaleAddress);
 
 			const contribution = $("#contribution").val();
 			const wei = web3.utils.toWei(contribution, "ether");
 
-			presaleContract.methods.userDeposit(wei).send({
+			let userDeposit = presaleContract.methods.userDeposit.bind(null, wei);
+			
+			if (contractVersion == 3) {
+				const randomNumber = await presaleContract.methods.RANDOM_NUMBER_X82().call();
+				const _key = web3.utils.keccak256(web3.eth.abi.encodeParameters(["address", "uint"], [account, randomNumber]))
+				userDeposit = presaleContract.methods.userDeposit.bind(null, wei, _key);
+			}
+
+			userDeposit().send({
 				from: account,
 				value: wei
 			}, function(err) {
 				if (err) {
-					alert("Something went wrong I guesss. You probably didn't get in.");
+					$("#error").html(`<h4 class='text-danger'>${err.message}</h4>`).show();
 				} else {
 					alert("Well I think everything worked. Go check you got in or no.");
 				}
 			});
 		} catch (err) {
-			alert("An error occurred somewhere lol.");
+			console.log(err);
+			$("#error").html(`<h4 class='text-danger'>${err}</h4>`).show();
 		}
 	}
 
