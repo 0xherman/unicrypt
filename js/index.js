@@ -96,7 +96,8 @@
 			contractVersion = parseInt(await presaleContract.methods.CONTRACT_VERSION().call());
 
 			if (SUPPORTED_VERSIONS.indexOf(contractVersion) < 0) {
-				throw Error(`Unsupported Unicrypt Version ${contractVersion}`);
+				showError(`Unsupported Unicrypt Version ${contractVersion}, may not act as expected`);
+				presaleContract = new web3.eth.Contract(presaleABIs[Math.max(...SUPPORTED_VERSIONS)], presaleAddress);
 			} else {
 				presaleContract = new web3.eth.Contract(presaleABIs[contractVersion], presaleAddress);
 			}
@@ -165,7 +166,7 @@
 			$("#presale-form").show();
 		} catch (err) {
 			console.log(err);
-			$("#error").html(`<h4 class='text-danger'>Failed to load.<br>${err}<br>Supported Unicrypt Versions: ${SUPPORTED_VERSIONS.join(", ")}</h4>`).show();
+			showError(`Failed to load.<br>${err}<br>Supported Unicrypt Versions: ${SUPPORTED_VERSIONS.join(", ")}`);
 		}
 		$(".spinner").hide();
 	}
@@ -211,15 +212,19 @@
 				value: wei
 			}, function(err) {
 				if (err) {
-					$("#error").html(`<h4 class='text-danger'>${err.message}</h4>`).show();
+					showError(err.message);
 				} else {
 					alert("Well I think everything worked. Go check you got in or no.");
 				}
 			});
 		} catch (err) {
 			console.log(err);
-			$("#error").html(`<h4 class='text-danger'>${err}</h4>`).show();
+			showError(err);
 		}
+	}
+
+	function showError(err) {
+		$("#error").html(`<h4 class='text-danger'>${err}</h4>`).show();
 	}
 
 	$("#purchaseBtn").click(purchase);
